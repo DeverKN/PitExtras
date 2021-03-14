@@ -1,0 +1,8 @@
+{
+    "name": "PitExtras",
+    "author": "CeeFThree",
+    "description": "Tracks the Cooldown on First Aid Egg and the Duration of Aura of Protection and AAA Steak aswell as Not Gladiator, Shark, and Solitude",
+    "entry": "index.js",
+    "requires": ["SettingsManager", "PromiseV2", "requestV2"],
+    "version": "1.2.3"
+  }
