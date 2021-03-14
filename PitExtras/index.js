@@ -17,10 +17,11 @@ let spawnTime = null;
 let lastMessage = null;
 let wearingBadArmor = false;
 let newLife = true;
+var warnings = {fiveThousandBounty: false,
+                apiKey: false};
 let warningMessage = false;
 let onGenesis = false;
 let genesisSymbol = ""
-let apiKeyWarningSent = false
 var streakInfo = {endTime: null,
   startTime: null,
   kills: 0,
@@ -626,6 +627,7 @@ var streakInfo = {endTime: null,
                     status: 0,
                     statusIndex: null,
                     streak: 0,
+                    bounty: 0,
                     streakIndex: null,
                     urlIndex: null,
                     scoreboardArray : []
@@ -666,6 +668,8 @@ var streakInfo = {endTime: null,
                       } else if (item.toString().includes("Streak")){
                         customScoreboard.streak = Number.parseFloat(item.toString().split(" ")[1].replace(/(§[a-z0-9])/g,"").replace(/[^0-9]/g,""));
                         customScoreboard.streakIndex = index;
+                      } else if (item.toString().includes("Bounty")){
+                        customScoreboard.bounty = Number.parseFloat(item.toString().split(" ")[1].replace(/(§[a-z0-9])/g,"").replace(/[^0-9]/g,""));
                       } else if ((item.toString().includes("hypixel")) || (item.toString().includes("§6§l"))){
                         customScoreboard.urlIndex = index;
                       }
@@ -745,11 +749,15 @@ var streakInfo = {endTime: null,
                           if (config.key != null){
                             let key = config.key;
                             if ((timeNow - playerStats.lastUpdated) > API_UPDATE_TIME_SECONDS * MILLISEC_TO_SEC){
-                              fetchHypixelStats(key, Player.getName());
-                              playerStats.lastUpdated = timeNow;
+                              try {
+                                fetchHypixelStats(key, Player.getUUID().toString());
+                                playerStats.lastUpdated = timeNow;
+                              } catch (e) {
+                                ChatLib.chat(e)
+                              }
                             }
-                          } else if (apiKeyWarningSent == false) {
-                            apiKeyWarningSent = true;
+                          } else if (warnings.apiKey == false) {
+                            warnings.apiKey = true;
                             ChatLib.chat(`&bPit Extras &arequires a Hypixel API Key in order to function properly`);
                             ChatLib.chat(`&aPlease add and API Key be doing &b/apikey set (key)`);
                             ChatLib.chat(`&aIf you don't have an API Key you can generate a new one by doing &b/api new`);
@@ -768,6 +776,22 @@ var streakInfo = {endTime: null,
                           }
                           let xpIndex = getScoreBoardToArray(26).xpIndex;
                           let goldIndex = getScoreBoardToArray(26).goldIndex;
+                          try {
+                            let bounty = (getScoreBoardToArray(26).bounty);
+                            if ((bounty >= 5000) && (pitExtrasSettings.getSetting("GUI", "5K Bounty Warning"))){
+                              if (warnings.fiveThousandBounty == false){
+                                let MESSAGE_FADE_IN_TIME = 10;
+                                let MESSAGE_STAY_TIME = 10;
+                                let MESSAGE_FADE_OUT_TIME = 10;
+                                Client.showTitle(`&6&l5K Bounty Reached`, "", MESSAGE_FADE_IN_TIME, MESSAGE_STAY_TIME, MESSAGE_FADE_OUT_TIME);
+                                warnings.fiveThousandBounty = true;
+                              }
+                            } else {
+                              warnings.fiveThousandBounty = false;
+                            };
+                          } catch (e){
+                            ChatLib.chat(e);
+                          }
                           goldReqEstimate = ((goldReqEstimate > 0) ? goldReqEstimate : 0);
                           if (pitExtrasSettings.getSetting("Custom Scoreboard", "Show Pres XP %")){
                             sortedScoreBoardArray = addToCustomScoreboard(sortedScoreBoardArray, `§b${Math.min(((((playerStats.xp - prestigeInfo[playerStats.pres - 1].SumXp) / (prestigeInfo[playerStats.pres].SumXp - prestigeInfo[playerStats.pres - 1].SumXp))).toFixed(4) * 100).toFixed(2), 100)}%`, xpIndex + 1, false);
@@ -818,21 +842,8 @@ var streakInfo = {endTime: null,
                           Scoreboard.setShouldRender(false)
                           scoreBoardDisplay.shouldRender = true;
                           scoreBoardDisplay.setRenderLoc(
-                            config.scoreboard.x,
+                            config.scoreboard.x - scoreBoardDisplay.getWidth(),
                             config.scoreboard.y);
-                            /*try {
-                            scoreBoardDisplayShadow.clearLines();
-                            scoreBoardDisplay.getLines().forEach((item, i) => {
-                            //scoreBoardDisplayShadow.addLine(item.setText(`§8` + item.toString());
-                          });
-                        } catch (e) {
-                        ChatLib.chat(e);
-                      }
-                      scoreBoardDisplayShadow.shouldRender = true;
-                      scoreBoardDisplayShadow.setRenderLoc(
-                      (config.scoreboard.x - 2),
-                      (config.scoreboard.y - 1));
-                      scoreBoardDisplayShadow.render();*/
                       scoreBoardDisplay.render();
                     } else {
                       Scoreboard.setShouldRender(true);
@@ -862,21 +873,15 @@ var streakInfo = {endTime: null,
                     } catch (e) {
                       ChatLib.chat(e)
                     }
-                    //getScoreBoardToArray(26).urlIndex
-                    //customScoreBoardArray = addToCustomScoreboard(customScoreBoardArray, rainbow, customScoreBoardArray.length, true);
                     scoreBoardDisplay.clearLines()
                     try {
                       customScoreboardTitle = pitExtrasSettings.getSetting("Custom Scoreboard", "Title");
-                      //customScoreboardTitle = "§c§lBhopper Simulator 2021"
                       scoreBoardTitle = ((customScoreboardTitle.length > 0) ? customScoreboardTitle : Scoreboard.getTitle())
                       scoreBoardDisplay.addLine(
                         new DisplayLine("  " + "  " + scoreBoardTitle + "  " + "  " + "  ")
                         .setAlign("center")
-                        //.setBackgroundColor(color)
-                        //.setScale(tempScale / 100)
                       )
                       customScoreBoardArray.forEach((item) => {
-                        //Scoreboard.setLine(TOP_SCORE - item.index, item.text, true);
                         if ((item.text.toString().length > 6) || (item.index > 1)){
                           let alignments = ["left", "center", "right"]
                           scoreBoardAlign = alignments[pitExtrasSettings.getSetting("Custom Scoreboard", "Align") - 1];
@@ -904,12 +909,6 @@ var streakInfo = {endTime: null,
                           .setAlign("center")
                         )
                       }
-                      /*let maxScoreBoardLength = 15;
-                      if ((customScoreBoardArray.length) + 1 < maxScoreBoardLength){
-                      for (i = 0; i < maxScoreBoardLength - (customScoreBoardArray.length + 1); i++){
-                      //Scoreboard.setLine(TOP_SCORE - sortedScoreBoardArray.length - i, "  ".repeat(i), true);
-                    }
-                  }*/
                 } catch (e) {
                   //ChatLib.chat(e);
                 }
@@ -1353,7 +1352,8 @@ var streakInfo = {endTime: null,
                   }),
                   new Setting.Button("Move Jewel GUI", "Move", () => {
                     ChatLib.command("pitextrasgui jewel", true);
-                  })
+                  }),
+                  new Setting.Toggle("5K Bounty Warning", false)
                 ]
               },
               {
@@ -1404,9 +1404,9 @@ var streakInfo = {endTime: null,
               }
             }).setName("pitextrasgui")
 
-            const fetchHypixelStats = (key, name) => {
+            const fetchHypixelStats = (key, uuid) => {
               request({
-                url: `https://api.hypixel.net/player?key=${key}&name=${name}`,
+                url: `https://api.hypixel.net/player?key=${key}&uuid=${uuid}`,
                 json: true,
                 headers: {
                   "User-Agent": "CTJS32A",
@@ -1425,6 +1425,7 @@ var streakInfo = {endTime: null,
                   playerStats.currentGold = playerInfo.player.stats.Pit.profile.cash.toFixed(2);
                   playerStats.goldGrinded = playerInfo.player.stats.Pit.profile[`cash_during_prestige_${playerStats.pres}`].toFixed(2);
                 } catch (e) {
+                  ChatLib.chat("request fail");
                   ChatLib.chat(e);
                   return ({success: false})
                 }
@@ -1441,7 +1442,7 @@ var streakInfo = {endTime: null,
 
             const jewelcheck = register("command", () => {
               getHiddenJewelProgress();
-            }).setName("jewelcheck")
+            }).setName("jewelcheck");
 
             var jewels = [];
             function getHiddenJewelProgress(){
