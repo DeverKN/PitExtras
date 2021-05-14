@@ -533,12 +533,13 @@ register("messageSent", (msg, event) => {
     }
 });
 
-function minToTimeString(timeInMinutes) {
+function minToTimeString(inputTime) {
     let HR_TO_MIN_TO_SEC = 60
+    let timeInMinutes = inputTime
     let timeString = ""
     if (timeInMinutes >= 60) {
         timeString = timeString + `${Math.floor(timeInMinutes / HR_TO_MIN_TO_SEC)}hr `
-        timeInMinutes = timeInMinutes - Math.floor(timeInMinutes % HR_TO_MIN_TO_SEC);
+        timeInMinutes = timeInMinutes - Math.floor((timeInMinutes % HR_TO_MIN_TO_SEC));
     }
     timeString = timeString + `${Math.floor(timeInMinutes)}min `
     timeInMinutes = timeInMinutes - Math.floor(timeInMinutes);
@@ -1534,7 +1535,11 @@ register('guiMouseClick', (x, y, button, gui, event) => {
 
 function setDurabilityPercent(item, percentAsDecimal){
   percentAsDecimal = (percentAsDecimal > 1 ? 1 : percentAsDecimal)
-  item.setDamage(Math.max(Math.ciel(item.getMaxDamage() * percentAsDecimal), 0));
+  //func_77972_a = damageItem(int amount, EntityLivingBase entityIn)
+  //func_77964_b = setItemDamage(int meta)
+  item.getItemStack().func_77972_a(3/*Math.max(Math.ceil(item.getMaxDamage() * percentAsDecimal))*/, Player.getPlayer());
+  ChatLib.chat("Max Dmg: " + item.getMaxDamage());
+  //item.setDamage(Math.max(Math.ceil(item.getMaxDamage() * percentAsDecimal), 0));
 }
 
 function createStack(id, name, lore, damage, glint) {
@@ -1674,7 +1679,8 @@ function updateItemData(){
             if (!(item.getLore().join().includes(currTimer.itemRender.defaultLore[0]))){
               return;
             } else {
-              useItemDuraPercent(item, Math.max((currTimer.cooldownLength - cooldownTime).toFixed(2), 0) / currTimer.cooldownLength);
+              //ChatLib.chat(item.getLore().join());
+              //setDurabilityPercent(item, .5/*Math.max((currTimer.cooldownLength - cooldownTime).toFixed(2), 0) / currTimer.cooldownLength*/);
             }
           }
           let cooldownTime = ((Date.now() - currTimer.lastUsed) / MILLISEC_TO_SEC);
