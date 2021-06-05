@@ -1,5 +1,6 @@
 var timers = {
               egg:{timername: "§cEgg Cooldown:",
+                   setting: () => pitExtrasSettings.getSetting("GUI", "Show Egg Timer"),
                    cooldownLength: 10,
                    lastUsed: 0,
                    colorCode: "§6",
@@ -14,6 +15,7 @@ var timers = {
                      cooldownLore: `§6Cooldown Remaining: `
                    }},
               aura:{timername: "§aAura True Prot:",
+                   setting: () => pitExtrasSettings.getSetting("GUI", "Show Aura Timer"),
                    cooldownLength: 15,
                    lastUsed: 0,
                    colorCode: "§6",
@@ -28,6 +30,7 @@ var timers = {
                      cooldownLore: '§6Aura Remaining: '
                    }},
               steak:{timername: "§eAAA-Steak Buff:",
+                    setting: () => pitExtrasSettings.getSetting("GUI", "Show Steak Timer"),
                     cooldownLength: 10,
                     lastUsed: 0,
                     colorCode: "§6",
@@ -42,6 +45,7 @@ var timers = {
                       cooldownLore: '§6AAA-Steak Remaining: '
                     }},
               tele:{timername: "§bTelebow Cooldown:",
+                    setting: () => pitExtrasSettings.getSetting("GUI", "Show Telebow Timer"),
                     cooldownLength: 10,
                     lastUsed: 0,
                     colorCode: "§6",
@@ -128,25 +132,10 @@ var itemCounters = [{
                              {minAmount:0,
                               colorCode:"§c"}]
                             }];
-/*var featuresEnabled:{
-  lifeSaverRespawn:,
-  forceShift:,
-  customScoreboard:,
-  bonusScoreBoardInfo:,
-  itemTimers:,
-  preventItemUse:,
-  telebowTimer:,
-  enchantHUD:,
-  streakInfo:,
-  freshColor:,
-  itemStats:,
-  jewelList:,
-  fiveKWarning:,
-}*/
 var ITEM_ICON_BUFFER = 4;
 var ITEM_ICON_SIZE = 16;
 let PIT_EXTRAS_MESSAGE_TAG = "§7[§fPit§6Extras§7]"
-let auraOfProtectionLength = 15;
+/*let auraOfProtectionLength = 15;
 let eggCooldown = 10;
 let aaaSteakLength = 10;
 let eggTime = null;
@@ -157,12 +146,12 @@ let shark = 0;
 let solitude = 0;
 let gladTier = 0;
 let sharkTier = 0;
-let soliTier = 0;
+let soliTier = 0;*/
 var config = null;
-let lowLifeItems = [];
-let spawnTime = null;
+var lowLifeItems = [];
+//let spawnTime = null;
 let wearingBadArmor = false;
-let newLife = true;
+//let newLife = true;
 var warnings = {
     fiveThousandBounty: false,
     badArmor: false
@@ -240,7 +229,7 @@ let prestigeInfo = [
   {Multiplier: 101, TotalXp: 6660950, SumXp: 64614630, GoldReq: 18180000, Renown: 100, Color: "WHITE", ColorCode:"§f"},
   {Multiplier: 101, TotalXp: 6660950, SumXp: 71275580, GoldReq: 0, Renown: 100, Color: "AQUA", ColorCode:"§b"}
 ];
-var openGUI = null;
+//var openGUI = null;
 let MILLISEC_TO_SEC = 1000;
 let color = (Renderer.RED);
 let rainbowSteps = 0;
@@ -259,14 +248,12 @@ const ItemStack = Java.type("net.minecraft.item.ItemStack");
 const NBTTagCompound = Java.type("net.minecraft.nbt.NBTTagCompound");
 const NBTTagInt = Java.type('net.minecraft.nbt.NBTTagInt');
 let scoreBoardAlign = "center";
-//pitExtrasSettings.getSetting("LifeSaver", "Enabled")
 
 let spawnY = getSpawnY();
 
 function getSpawnY() {
     let lowestY = 0;
     World.getAllEntitiesOfType(Java.type("net.minecraft.entity.passive.EntityVillager").class).forEach((item, i) => {
-        //ChatLib.chat(item.getY());
         lowestY = Math.max(lowestY, item.getY())
     });
     return (lowestY);
@@ -275,21 +262,19 @@ function getSpawnY() {
 const pitExtrasSettings = new SettingsObject("PitExtras", [{
         name: "GUI",
         settings: [
-            new Setting.Toggle("Enabled", true),
-            new Setting.Toggle("Show Egg Timer", true),
-            new Setting.Toggle("Show Aura Timer", true),
-            new Setting.Slider("Cooldown between Aura Uses", 10, 0, auraOfProtectionLength),
-            new Setting.Toggle("Show Steak Timer", true),
-            new Setting.Slider("Cooldown between AAA Steak Uses", 7, 0, aaaSteakLength),
-            new Setting.Toggle("Show Telebow Timer", true),
-            new Setting.Toggle("Show Item Icons", true),
+            new Setting.Toggle("5K Bounty Warning", true),
             new Setting.Toggle("Force Shift", false),
+            new Setting.Toggle("Show Streak Info", true),
             new Setting.Button("Move GUI", "Move", () => {
                 ChatLib.command("pitextrasgui", true);
             }),
-            new Setting.Toggle("Pin Streaker GUI", true),
-            new Setting.Toggle("5K Bounty Warning", false),
-            new Setting.Toggle("Rainbow", true)
+            new Setting.Toggle("Rainbow", false),
+            new Setting.Slider("Text Mode (None, Shadowed, Bold)", 2, 1, 3),
+            new Setting.Toggle("Show Timer Item Icons", true),
+            new Setting.Toggle("Show Egg Timer", true),
+            new Setting.Toggle("Show Aura Timer", true),
+            new Setting.Toggle("Show Steak Timer", true),
+            new Setting.Toggle("Show Telebow Timer", true),
         ]
     },
     {
@@ -303,8 +288,7 @@ const pitExtrasSettings = new SettingsObject("PitExtras", [{
     {
         name: "Custom Scoreboard",
         settings: [
-            new Setting.Toggle("Enabled", true),
-            new Setting.Toggle("Rainbow", true),
+            new Setting.Toggle("Rainbow", false),
             new Setting.TextInput("Title", "§6§lPit Extras"),
             new Setting.Toggle("Pres Number", false),
             new Setting.Toggle("Show Faction Points", true),
@@ -313,7 +297,7 @@ const pitExtrasSettings = new SettingsObject("PitExtras", [{
             new Setting.Toggle("Show Remaining Gold Req", true),
             new Setting.Toggle("Show Gold Req % Grinded", true),
             new Setting.Toggle("Estimate Gold Req", true),
-            new Setting.Slider("Align", 2, 1, 3)
+            new Setting.Slider("Align (Left, Center, Right)", 2, 1, 3)
         ]
     }
 ]).setCommand("pitextras").setSize(400, 150);
@@ -327,10 +311,8 @@ register('step', (step) => {
     rainbowSteps = step
   }
   if ((!myGui.isOpen()) && (guiClosed == false)){
-    //ChatLib.chat("closed");
     if (uiLoaded == true) {
       saveUILocations()
-      ChatLib.chat("saved");
       guiClosed = true;
     }
   }
@@ -421,13 +403,11 @@ register("chat", (msg, event) => {
 //Handle Punching
 register("chat", (msg, event) => {
     msg = msg.toString().trim()
-    //PUNCH! [99] CowWow by [120] BlackHatEnderman
     if (msg.includes("PUNCH!")){
       let splitMsg = msg.split("by");
       let puncher = splitMsg[1];
       let punchee = splitMsg[0];
       if (puncher.includes(Player.getName())){
-        //Get Punch Tier/Cooldown
 
       }
     }
@@ -452,7 +432,6 @@ function updateItemCounters(){
   }
   itemCounters.forEach((currentCounter) => {
     try {
-      //ChatLib.chat(`Count: ${countItemInInvByName(Player.getInventory(), currentCounter.registryName)}`);
       currentCounter.currentInvAmount = countItemInInvByName(Player.getInventory(), currentCounter.registryName);
     } catch (e) {
       ChatLib.chat(`Update Item Counters Error: ${e}`);
@@ -463,14 +442,10 @@ function updateItemCounters(){
 function countItemInInvByName(inventory, itemRegistryName){
   try {
     let count = 0
-    //ChatLib.chat(inventory.getItems())
     inventory.getItems().forEach((item) => {
       if (item.getUnlocalizedName() != "tile.air"){
         if (item.getRegistryName() == itemRegistryName) {
           count += item.getStackSize();
-          //ChatLib.chat("count")
-        } else {
-          //ChatLib.chat("dont count")
         }
       }
     });
@@ -552,18 +527,19 @@ register("messageSent", (msg, event) => {
     if (msg == "/spawn") {
       ChatLib.chat(`${PIT_EXTRAS_MESSAGE_TAG} Streak reset because you spawned`)
         //Detect major
-        if (!majorEvent) {
-            resetStreak()
-        }
+        //if (!majorEvent) {
+            endStreak()
+        //}
     }
 });
 
-function minToTimeString(timeInMinutes) {
+function minToTimeString(inputTime) {
     let HR_TO_MIN_TO_SEC = 60
+    let timeInMinutes = inputTime
     let timeString = ""
     if (timeInMinutes >= 60) {
         timeString = timeString + `${Math.floor(timeInMinutes / HR_TO_MIN_TO_SEC)}hr `
-        timeInMinutes = timeInMinutes - Math.floor(timeInMinutes % HR_TO_MIN_TO_SEC);
+        timeInMinutes = timeInMinutes - Math.floor((timeInMinutes % HR_TO_MIN_TO_SEC));
     }
     timeString = timeString + `${Math.floor(timeInMinutes)}min `
     timeInMinutes = timeInMinutes - Math.floor(timeInMinutes);
@@ -575,7 +551,6 @@ function minToTimeString(timeInMinutes) {
 
 function trackItemStats(item, stat, increaseAmount) {
     try {
-        //ChatLib.chat("read config")
         const tags = item.getNBT().getCompoundTag("tag").getCompoundTag("ExtraAttributes")
         let nonce = tags.getTag("Nonce");
         if (nonce === null) {
@@ -602,7 +577,7 @@ function trackItemStats(item, stat, increaseAmount) {
         try {
             saveConfig();
         } catch (r) {
-            ChatLib.chat(r);
+            ChatLib.chat("Save Item Stats Error" + r);
         }
     } catch (e) {
         ChatLib.chat(`TrackItemStats Error: ${e}`)
@@ -617,71 +592,17 @@ const getNearby = register(`step`, (steps) => {
     updateItemCounters();
     //Get the player's mystic enchants
     //Get Enchant Tiers
-    let player = World.getPlayerByName(Player.getName());
+    /*let player = World.getPlayerByName(Player.getName());
     let sword = player.getItemInSlot(HAND_SLOT);
     let pants = player.getItemInSlot(PANTS_SLOT);
-    /*if (pants.getName() != "tile.air.name") {
-        //Get Gladiator Tier (If any)
-        if (pants.getLore().join().includes('"Not" Gladiator III')) {
-            gladTier = 3;
-        } else if (pants.getLore().join().includes('"Not" Gladiator II')) {
-            gladTier = 2;
-        } else if (pants.getLore().join().includes('"Not" Gladiator')) {
-            gladTier = 1;
-        } else {
-            gladTier = 0;
-        }
-        //Get Solitude Tier (If any)
-        if (pants.getLore().join().includes('Solitude III')) {
-            soliTier = 3;
-        } else if (pants.getLore().join().includes('Solitude II')) {
-            soliTier = 2;
-        } else if (pants.getLore().join().includes('Solitude')) {
-            soliTier = 1;
-        } else {
-            soliTier = 0;
-        }
-    } else {
-        soliTier = 0;
-        gladTier = 0;
-    }
-    if (sword.getName() != "tile.air.name") {
-        //Get Shark Tier (If any)
-        if (sword.getLore().join().includes('Shark III')) {
-            sharkTier = 3;
-        } else if (sword.getLore().join().includes('Shark II')) {
-            sharkTier = 2;
-        } else if (sword.getLore().join().includes('Shark')) {
-            sharkTier = 1;
-        } else {
-            sharkTier = 0;
-        }
-    } else {
-        sharkTier = 0;
-    }*/
-    //If the player is in spawn then set all values to 0
-    /*if (World.getPlayerByName(Player.getName()).getY() >= (spawnY - 7)) {
-        gladiator = 0;
-        shark = 0;
-        solitude = 0;
-        return;
-    };*/
     Object.key(enchantPower)
-    /*let players = TabList.getNames()
-        .map(name => name.replace(/§/g, "&"))
-        .map(name => name.replace(/&[abcdef0-9klm](HERMIT|HIGH|UBER\d+|OVERDRIVE|BEAST|MOON) /, ""))
-        .map(name => ChatLib.removeFormatting(name))
-        .map(name => name.split(" ")[1])
-        .map(player => World.getPlayerByName(player))
-        .filter(player => player !== null && player.getName() !== Player.getName());
-    players.forEach(player => {});*/
     gladiator = getPlayers().filter(player => playerDistance(World.getPlayerByName(Player.getName()), player) <= 12).length;
     //Gladiator maxes at 10 players
     gladiator = (gladiator <= 10 ? gladiator : 10)
     solitude = players.filter(player => playerDistance(World.getPlayerByName(Player.getName()), player) <= 7).length;
     shark = players.filter(player => playerDistance(World.getPlayerByName(Player.getName()), player) <= 12)
         .filter(player => player.getHP() <= 12)
-        .length;
+        .length;*/
 
 }).setDelay(1);
 
@@ -780,10 +701,9 @@ function loadUILocations(){
 //Get the distance between two players
 function playerDistance(player1, player2) {
     var a = player1.getX() - player2.getX();
-    /*var b = player1.getY() - player2.getY();*/
-    var c = player1.getZ() - player2.getZ();
-    var d = Math.sqrt(a * a/* + b * b*/ + c * c);
-    return d;
+    var b = player1.getZ() - player2.getZ();
+    var c = Math.sqrt(a * a + b * b);
+    return c;
 };
 
 //Defining a bunch of global variables
@@ -812,7 +732,7 @@ try {
           uiElement.enabled = !(uiElement.enabled);
         }
       }
-    })}/*clickFunction*/);
+    })});
   myGui.registerMouseReleased(releaseFunction);
 } catch (error){
   ChatLib.chat(error)
@@ -838,20 +758,6 @@ function dragFunction(mouseX, mouseY) {
       initialMouseY = mouseY;
     }
     //Saves mouse coordinates into persistent data to store location of UI
-
-    /*if (openGUI == "main") {
-        config.position.x = mouseX
-        config.position.y = mouseY
-    } else if (openGUI == "streak") {
-        config.streakGUI.x = mouseX
-        config.streakGUI.y = mouseY
-    } else if (openGUI == "scoreboard") {
-        config.scoreboard.x = mouseX
-        config.scoreboard.y = mouseY
-    } else if (openGUI == "jewel") {
-        config.jewelGUI.x = mouseX
-        config.jewelGUI.y = mouseY
-    }*/
 
     //Saves mouse coordinates into global variable
     globalMouseX = mouseX;
@@ -963,88 +869,10 @@ function itemUse(item, event) {
 
     try {
       let currentTimer = timers[timerItemNames[index].timerName];
-      /*if (((Date.now() - currentTimer.lastUsed) / MILLISEC_TO_SEC) < currentTimer.cooldownLength){
-        cooldownMessage(timerItemNames[index].timerName);
-        if (event != null){
-          cancel(event);
-          return
-        } else {
-          ChatLib.clearChat(111)
-          ChatLib.chat(new Message(`${PIT_EXTRAS_MESSAGE_TAG} §cUse not canceled because you left clicked`).setChatLineId(111))
-        }
-      }*/
       currentTimer.lastUsed = Date.now();
     } catch (err){
       ChatLib.chat(`ITEMUSE ERROR: ${err}`)
     }
-    /*if (config === null) readConfig();
-    let timeNow = Date.now();
-    if (item === "§cFirst-Aid Egg") {
-        //Handle first aid egg off cooldown
-        eggTime = timeNow;
-    } else if (item === "§7First-Aid Egg") {
-        //Handle first aid egg on cooldown
-        if (eggTime == null) return;
-        let remainingCooldown = eggCooldown - ((timeNow - eggTime) / MILLISEC_TO_SEC);
-        remainingCooldown = ((remainingCooldown > 0) ? remainingCooldown.toFixed(2) : 0)
-        ChatLib.clearChat(110)
-        ChatLib.chat(new Message(`§cFirst-Aid Egg §fon cooldown for §6${remainingCooldown} seconds`).setChatLineId(110))
-    } else if (item === "§aAura of Protection") {
-        //Handle aura of protection
-        if (auraTime == null) {
-            auraTime = timeNow;
-            return;
-        } else {
-            let auraRemaining = ((auraOfProtectionLength * MILLISEC_TO_SEC) - (timeNow - auraTime)) / MILLISEC_TO_SEC;
-            auraRemaining = ((auraRemaining > 0) ? auraRemaining.toFixed(2) : 0)
-            if (auraRemaining <= (auraOfProtectionLength - pitExtrasSettings.getSetting("GUI", "Cooldown between Aura Uses"))) {
-                auraTime = timeNow;
-                ChatLib.chat(`§eUsed §aAura of Protection`);
-                return
-            } else {
-                // If there is an event cancel it
-                ChatLib.clearChat(010, 111, 222)
-                ChatLib.chat(new Message(`§6Aura true damage prot still in effect for §c${auraRemaining} seconds`).setChatLineId(111))
-                if (event != null) {
-                    ChatLib.chat(new Message(`§aUse canceled`).setChatLineId(010))
-                    ChatLib.chat(new Message(`§6You can use another §aAura §6in §c${auraRemaining - (auraOfProtectionLength - pitExtrasSettings.getSetting("GUI", "Cooldown between Aura Uses")).toFixed(2)} seconds`).setChatLineId(222))
-                    cancel(event);
-                } else {
-                    auraTime = timeNow;
-                    ChatLib.chat(new Message(`§cUse not canceled because you left clicked`).setChatLineId(010))
-                }
-            }
-        }
-    } else if (item === "§6AAA-Rated Steak") {
-        //Handle AAA Steak
-        if (steakTime == null) {
-            steakTime = timeNow;
-            ChatLib.chat(`§eUsed §6AAA-Rated Steak`);
-            return;
-        } else {
-            let steakRemaining = ((aaaSteakLength * MILLISEC_TO_SEC) - (timeNow - steakTime)) / MILLISEC_TO_SEC;
-            steakRemaining = ((steakRemaining > 0) ? steakRemaining.toFixed(2) : 0);
-            if (steakRemaining <= (aaaSteakLength - pitExtrasSettings.getSetting("GUI", "Cooldown between AAA Steak Uses"))) {
-                steakTime = timeNow;
-                ChatLib.chat(`Used §6Steak`);
-                return;
-            } else {
-                // If there is an event cancel it
-                ChatLib.clearChat(010, 234, 567)
-                ChatLib.chat(new Message(`§6Steak buff still in effect for §c${steakRemaining} seconds`).setChatLineId(234))
-                if (event != null) {
-                    ChatLib.chat(new Message(`§aUse canceled`).setChatLineId(010))
-                    ChatLib.chat(new Message(`§aYou can use another §6Steak §ain §c${(steakRemaining - (aaaSteakLength - pitExtrasSettings.getSetting("GUI", "Cooldown between AAA Steak Uses"))).toFixed(2)} seconds`).setChatLineId(567))
-                    cancel(event);
-                } else {
-                    steakTime = timeNow;
-                    ChatLib.chat(new Message(`§cUse not canceled because you left clicked`).setChatLineId(010))
-                }
-            }
-        }
-    } else {
-        return;
-    }*/
 };
 
 function romanToInt(romanNumerals) {
@@ -1204,10 +1032,6 @@ scoreBoardDisplay.addLine(
 )
 
 const getAPI = register(`step`, (steps) => {
-  //let timeNow = Date.now();
-  //let API_UPDATE_TIME_SECONDS = 10
-  /*try {
-    if ((timeNow - playerStats.lastUpdated) > API_UPDATE_TIME_SECONDS * MILLISEC_TO_SEC) {*/
       try {
           promptKey("PitExtras").then(key => {
             fetchHypixelStats(key, Player.getUUID().toString());
@@ -1215,10 +1039,6 @@ const getAPI = register(`step`, (steps) => {
       } catch (e) {
           ChatLib.chat(`GetAPI Error: ${e}`)
       }
-    /*}
-  } catch (e) {
-    ChatLib.chat(e)
-  }*/
 }).setDelay(10);
 
 function createCustomScoreBoard() {
@@ -1233,13 +1053,6 @@ function createCustomScoreBoard() {
     let rainbow = rainbowString("Pit Extras", rainbowTickColor);
     try {
         let timeNow = Date.now();
-        //} else {
-            //ChatLib.chat(hasKey());
-            //ChatLib.chat(getKey());
-            //promptKey("PitExtras").then(key => ChatLib.chat("key: " + key));
-        //}
-        //sortedScoreBoardArray = addToCustomScoreboard(sortedScoreBoardArray, `${getScoreBoardToArray(26).scoreboardArray[getScoreBoardToArray(26).goldIndex].text} %69`, getScoreBoardToArray(26).goldIndex, true);
-        //sortedScoreBoardArray = addToCustomScoreboard(sortedScoreBoardArray, `Status: SWAG`, getScoreBoardToArray(26).statusIndex, true);
         let goldReqEstimate = 0;
         if (playerStats.goldGrinded != null) {
             goldReqEstimate = playerStats.goldGrinded;
@@ -1328,30 +1141,9 @@ function myRenderOverlay() {
     } catch (e) {
       ChatLib.chat(`SB Render Error: ${e}`);
     }
-    /*if (pitExtrasSettings.getSetting("Custom Scoreboard", "Enabled")) {
-        Scoreboard.setShouldRender(false);
-        scoreBoardDisplay.shouldRender = true;
-        scoreBoardDisplay.setRenderLoc(
-            config.scoreboard.x - scoreBoardDisplay.getWidth(),
-            config.scoreboard.y);
-        scoreBoardDisplay.render();
-    } else {
-        Scoreboard.setShouldRender(true);
-        scoreBoardDisplay.shouldRender = false;
-        scoreBoardDisplayShadow.shouldRender = false;
-    }*/
     myTextObject.setScale(config.position.scale);
     let renderPosition = {x:config.position.x,
                           y:config.position.y};
-    //ChatLib.chat(JSON.stringify(renderPosition));
-    /*let x = config.position.x;
-    let y = config.position.y;
-    try {
-      renderTimers(x, y);
-    } catch (err){
-      ChatLib.chat("Issue calling render timers");
-      ChatLib.chat(err);
-    }*/
     if (globalMouseX < Renderer.screen.getWidth() / 2) {
         newOffsetX = globalMouseX;
     } else {
@@ -1371,36 +1163,11 @@ function myRenderOverlay() {
     if (newOffsetY != offsetY) {
         renderPosition.y = (Renderer.screen.getHeight() - offsetY)
     }
-    /*if (myGui.isOpen() && openGUI == "main") {
-        renderPosition.y -= (config.position.scale * 10);
-        myTextObject.setX(x).setY(y).setString(`§fDrag and Drop to Move - Press §6ESC §fto Save`)
-        drawBold(myTextObject);
-        renderPosition.y += (config.position.scale * 10);
-    }*/
     try {
       renderHUD();
-      /*renderPosition = renderTimers(renderPosition.x, renderPosition.y);
-      renderPosition = renderEnchantPowerHUD(renderPosition.x, renderPosition.y);
-      renderPosition = renderLifeSaverWarnings(renderPosition.x, renderPosition.y);
-      renderPosition = renderItemCounts(renderPosition.x, renderPosition.y);
-      renderPosition = renderJewelList(config.jewelGUI.x, config.jewelGUI.y);*/
     } catch (e) {
       ChatLib.chat(`UI Elements Render Error: ${e}`);
     }
-    /*if (pitExtrasSettings.getSetting("GUI", "Show Telebow Timer")) {
-        if (cooldowns.telebow.cooldownInSec != null) {
-            let telebowCooldown = ((cooldowns.telebow.cooldownInSec - ((Date.now() - cooldowns.telebow.lastUsed) / MILLISEC_TO_SEC)).toFixed(2));
-            let telebowString = ""
-            if (telebowCooldown > 0) {
-                telebowString = `${telebowCooldown}s`
-            } else {
-                telebowString = "READY"
-            }
-            myTextObject.setX(x).setY(y).setString(`§bTelebow Cooldown: §6${telebowString}`);
-            drawBold(myTextObject);
-            y += (config.position.scale * 10);
-        }
-    }*/
 }
 
 let uiLoaded = false;
@@ -1476,7 +1243,7 @@ function renderScoreBoard(){
       customScoreBoardArray.forEach((item) => {
           if ((item.text.toString().length > 6) || (item.index > 1)) {
               let alignments = ["left", "center", "right"]
-              scoreBoardAlign = alignments[pitExtrasSettings.getSetting("Custom Scoreboard", "Align") - 1];
+              scoreBoardAlign = alignments[pitExtrasSettings.getSetting("Custom Scoreboard", "Align (Left, Center, Right)") - 1];
               let text = ""
               if (chromaScoreBoard == true){
                 text = item.text.replace(/(§[a-f0-9])+/g, "");
@@ -1497,7 +1264,7 @@ function renderScoreBoard(){
               }
           }
       });
-      if (myGui.isOpen() && openGUI == "scoreboard") {
+      /*if (myGui.isOpen() && openGUI == "scoreboard") {
           scoreBoardDisplay.addLine(
               new DisplayLine(` `)
               .setAlign("center")
@@ -1514,16 +1281,15 @@ function renderScoreBoard(){
               new DisplayLine(`§fPress §6ESC §fto Save`)
               .setAlign("center")
           )
-      }
+      }*/
   } catch (e) {
-      //ChatLib.chat(e);
+      ChatLib.chat(e);
   }
 }
 
 function getItemNumberColor(itemCounter){
   for (currentColor of itemCounter.colors){
     if (itemCounter.currentInvAmount >= currentColor.minAmount){
-      //ChatLib.chat(currentColor.colorCode + "test");
       return (currentColor.colorCode);
     }
   }
@@ -1536,22 +1302,18 @@ function renderItemCounts(startX, startY){
     let renderIcons = true;
     let renderNames = true;
     itemCounters.forEach((currentItemCounter, i) => {
-      //ChatLib.chat(currentItemCounter.registryName);
-      //ChatLib.chat(currentItemCounter.currentInvAmount);
       let counterName = '§e' + (("displayName" in currentItemCounter) ? currentItemCounter.displayName : new Item(currentItemCounter.registryName).getName());
       let colorCode = getItemNumberColor(currentItemCounter);
-      //ChatLib.chat("colorCode" + colorCode);
+
       let renderString = `: ${colorCode}${currentItemCounter.currentInvAmount}`;
       if (renderNames) renderString = `${counterName}${renderString}`;
 
       let counterItemImage = new Item(currentItemCounter.registryName);
       if (renderIcons) counterItemImage.draw(x, y - (ITEM_ICON_SIZE / 4));
 
-      //ChatLib.chat(`String: ${renderString}`)
       drawBold(myTextObject.setX((renderIcons ? x + ITEM_ICON_SIZE + ITEM_ICON_BUFFER : x)).setY(y).setString(renderString));
       y += (config.position.scale * (renderIcons ? ITEM_ICON_SIZE : 10));
     });
-    //ChatLib.chat("Done");
     return {x:x, y:y};
   } catch (e) {
     ChatLib.chat(`Render Item Counts Error: ${e}`);
@@ -1576,17 +1338,9 @@ function renderTimers(startX, startY){
   Object.keys(timers).forEach((item, i) => {
     try {
       item = timers[item];
-      /*ChatLib.chat(Date.now());
-      ChatLib.chat(item.lastUsed);
-      ChatLib.chat(Date.now() - item.lastUsed);*/
+      if (item.setting() == false) return;
       let cooldownTime = ((Date.now() - item.lastUsed) / MILLISEC_TO_SEC);
-      /*if (Number.isNaN(cooldownTime)){
-        cooldownTime = 1000;
-      }*/
-      /*ChatLib.chat(item.cooldownLength);
-      ChatLib.chat(cooldownTime);
-      ChatLib.chat(item.cooldownLength - cooldownTime);*/
-      if (pitExtrasSettings.getSetting("GUI","Show Item Icons")) {
+      if (pitExtrasSettings.getSetting("GUI","Show Timer Item Icons")) {
         if (Player.getInventory().contains(item.itemRender.itemID)) {
           if (item.itemRender.enchantRequired){
             let enchantSlot = getSlotOfEnchant(Player.getInventory(), item.itemRender.defaultLore[0], item.itemRender.itemID)
@@ -1635,12 +1389,6 @@ function renderStringArray(stringArray, x, y){
 
 function renderStreakHUD(x, y){
   if ((streakInfo.startTime != null) || ((myGui.isOpen() == true))) {
-      /*let savedX = x;
-      let savedY = y;
-      if ((!(pitExtrasSettings.getSetting("GUI", "Pin Streaker GUI"))) || ((myGui.isOpen() == true) && openGUI == "streak")) {
-          x = config.streakGUI.x;
-          y = config.streakGUI.y;
-      }*/
       let timeNow = Date.now();
       let time = (streakInfo.endTime == null ? ((timeNow - streakInfo.startTime) / MILLISEC_TO_SEC).toFixed(2) : ((streakInfo.endTime - streakInfo.startTime) / MILLISEC_TO_SEC).toFixed(2))
       time = ((myGui.isOpen() == true) ? 0 : time);
@@ -1654,38 +1402,6 @@ function renderStreakHUD(x, y){
         `§bXP per Kill: ${streakInfo.xpPerKill}`,
         `§bTime: ${Math.floor(time/60)}m ${Math.floor(time%60)}s`]
       renderStringArray(streakInfoArray, x, y);
-      /*let currentlyStreaking = (streakInfo.endTime == null ? `§fCurrent Streak Info` : `§fLast Streak Info`)
-      myTextObject.setX(x).setY(y).setString(currentlyStreaking);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-      myTextObject.setX(x).setY(y).setString(`§cKills: ${streakInfo.kills}`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-      myTextObject.setX(x).setY(y).setString(`§eAssists: ${streakInfo.assists}`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-      myTextObject.setX(x).setY(y).setString(`§6Gold: ${(streakInfo.gold).toFixed(2)}g`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-      myTextObject.setX(x).setY(y).setString(`§6Gold per Kill: ${streakInfo.goldPerKill.toFixed(2)}g`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-      let time = (streakInfo.endTime == null ? ((timeNow - streakInfo.startTime) / MILLISEC_TO_SEC).toFixed(2) : ((streakInfo.endTime - streakInfo.startTime) / MILLISEC_TO_SEC).toFixed(2))
-      myTextObject.setX(x).setY(y).setString(`§bXP: ${streakInfo.xp}`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-      myTextObject.setX(x).setY(y).setString(`§bXP per Kill: ${streakInfo.xpPerKill}`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-      time = (time == 60 ? 59 : time);
-      time = (((myGui.isOpen() == true) && openGUI == "streak") ? 0 : time);
-      myTextObject.setX(x).setY(y).setString(`§bTime: ${Math.floor(time/60)}m ${Math.floor(time%60)}s`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-      if (!(pitExtrasSettings.getSetting("GUI", "Pin Streaker GUI"))) {
-          x = savedX;
-          y = savedY;
-      }*/
   }
 }
 
@@ -1709,15 +1425,12 @@ function renderLifeSaverWarnings(x, y){
 }
 
 function getEnchantTier(item, enchant) {
-  //ChatLib.chat(enchant);
   let lore = ""
   try {
     lore = item.getLore().join();
   } catch (e) {
-    //ChatLib.chat("error" + e);
     return 0;
   }
-  //ChatLib.chat(lore);
   if (lore.includes(enchant + " III")){
     return 3;
   } else if (lore.includes(enchant + " II")){
@@ -1725,7 +1438,6 @@ function getEnchantTier(item, enchant) {
   } else if (lore.includes(enchant)) {
     return 1;
   } else {
-    //ChatLib.chat("no ench");
     return 0;
   }
 }
@@ -1734,17 +1446,9 @@ function updateEnchantPower() {
   try {
     Object.keys(enchantPower).forEach((key) => {
       currEnchantPower = enchantPower[key];
-      //ChatLib.chat(JSON.stringify(currEnchantPower));
       currEnchantPower.tier = getEnchantTier(new PlayerMP(Player.getPlayer()).getItemInSlot(currEnchantPower.slot), currEnchantPower.enchantName);
       let filteredPlayers = getPlayers().filter((player) => currEnchantPower.criteriaFunction(player));
-      /*if (key == "glad") {
-              ChatLib.chat(filteredPlayers.join("/"));
-      }*/
       currEnchantPower.playersNearby = filteredPlayers.length;
-      /*if ((currEnchantPower.tier > 0) || (myGui.isOpen())){
-        myTextObject.setX(x).setY(y).setString(currEnchantPower.displayName + "I".repeat(Math.max(1, currEnchantPower.tier)) + currEnchantPower.valueFunction());
-        drawBold(myTextObject);
-      }*/
     });
   } catch (e) {
     ChatLib.chat(e);
@@ -1752,15 +1456,9 @@ function updateEnchantPower() {
 }
 
 function renderEnchantPowerHUD(x, y){
-  /*if (myGui.isOpen()){
-   soliTier = Math.max(1, soliTier);
-   gladTier = Math.max(1, gladTier);
-   sharkTier = Math.max(1, sharkTier);
- }*/
  try {
    Object.keys(enchantPower).forEach((key) => {
      currEnchantPower = enchantPower[key];
-     //ChatLib.chat(JSON.stringify(currEnchantPower));
      if ((currEnchantPower.tier > 0) || (myGui.isOpen())){
        myTextObject.setX(x).setY(y).setString(currEnchantPower.displayName + " " + "I".repeat(Math.max(1, currEnchantPower.tier)) + " §6" + currEnchantPower.valueFunction());
        drawBold(myTextObject);
@@ -1770,25 +1468,6 @@ function renderEnchantPowerHUD(x, y){
  } catch (e) {
    ChatLib.chat("Render Enchant Power Error: " + e);
  }
-
-  /*if (soliTier > 0) {
-      let solitudeNum = (1 + Math.floor(soliTier / 2));
-      myTextObject.setX(x).setY(y).setString(`§fSolitude ${("I".repeat(soliTier))}: §6${((solitude <= solitudeNum) ? "§aYes" : "§cNo")}`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-  }
-  if (gladTier > 0) {
-      let gladiatorPercent = (.01 + ((gladTier - 1) * .005));
-      myTextObject.setX(x).setY(y).setString(`§fNot Glad ${("I".repeat(gladTier))}: §6${((gladiator*gladiatorPercent*100).toFixed(0))}%`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-  }
-  if (sharkTier > 0) {
-      let sharkPercent = (Math.floor((.0235 * sharkTier) * 100)) / 100;
-      myTextObject.setX(x).setY(y).setString(`§fShark ${("I".repeat(sharkTier))}: §6${((shark*sharkPercent*100).toFixed(0))}%`);
-      drawBold(myTextObject);
-      y += (config.position.scale * 10);
-  }*/
   return {x:x, y:y};
 }
 
@@ -1818,7 +1497,8 @@ function getRainbow(){
 }
 
 function drawBold(text) {
-  let mode = "Shadow";
+  let modes = ["None", "Shadow", "Bold"]
+  let mode = modes[pitExtrasSettings.getSetting("GUI", "Text Mode (None, Shadowed, Bold)") - 1];
   if (pitExtrasSettings.getSetting("GUI", "Rainbow")){
     color = getRainbow();
     text.setString(text.getString().replace(/(§[a-z0-9])+/g, "")).setColor(color);
@@ -1837,6 +1517,8 @@ function drawBold(text) {
       darkText.setX(x).setY(y);
     } else if (mode == "Shadow"){
       text.setShadow(true);
+    } else {
+      text.setShadow(false);
     }
     text.draw();
 }
@@ -1853,7 +1535,11 @@ register('guiMouseClick', (x, y, button, gui, event) => {
 
 function setDurabilityPercent(item, percentAsDecimal){
   percentAsDecimal = (percentAsDecimal > 1 ? 1 : percentAsDecimal)
-  item.setDamage(Math.max(Math.ciel(item.getMaxDamage() * percentAsDecimal), 0));
+  //func_77972_a = damageItem(int amount, EntityLivingBase entityIn)
+  //func_77964_b = setItemDamage(int meta)
+  item.getItemStack().func_77972_a(3/*Math.max(Math.ceil(item.getMaxDamage() * percentAsDecimal))*/, Player.getPlayer());
+  ChatLib.chat("Max Dmg: " + item.getMaxDamage());
+  //item.setDamage(Math.max(Math.ceil(item.getMaxDamage() * percentAsDecimal), 0));
 }
 
 function createStack(id, name, lore, damage, glint) {
@@ -1988,13 +1674,13 @@ function updateItemData(){
       }
       Object.keys(timers).forEach((key) => {
         let currTimer = timers[key];
-        //ChatLib.chat(JSON.stringify(currTimer));
         if(currTimer.itemRender.itemID == item.getID()){
           if (currTimer.itemRender.enchantRequired == true){
             if (!(item.getLore().join().includes(currTimer.itemRender.defaultLore[0]))){
               return;
             } else {
-              useItemDuraPercent(item, Math.max((currTimer.cooldownLength - cooldownTime).toFixed(2), 0) / currTimer.cooldownLength);
+              //ChatLib.chat(item.getLore().join());
+              //setDurabilityPercent(item, .5/*Math.max((currTimer.cooldownLength - cooldownTime).toFixed(2), 0) / currTimer.cooldownLength*/);
             }
           }
           let cooldownTime = ((Date.now() - currTimer.lastUsed) / MILLISEC_TO_SEC);
@@ -2003,21 +1689,13 @@ function updateItemData(){
       });
       Object.keys(itemStatusTrackers).forEach((key) => {
         let currItemPower = itemStatusTrackers[key];
-        //ChatLib.chat(JSON.stringify(currTimer));
         if(item.getID() == 283){
-          //if (currTimer.itemRender.enchantRequired == true){
             if (!(item.getLore().join().includes(currItemPower.enchant))){
               return;
             }
-          //}
-          /*let cooldownTime = ((Date.now() - currTimer.lastUsed) / MILLISEC_TO_SEC);*/
           updateLoreCounter(item, currItemPower.template, currItemPower.power.toFixed(2), 0);
         }
       });
-
-      //if (getItemInfo(item).enchants != null){
-        //let inventoryOpen = ((Client.currentGui.get() instanceof GuiInventory) || (Client.currentGui.get() instanceof GuiChest));
-
     });
   } catch (e) {
     ChatLib.chat(`Update Item Data Error: ${e}`);
@@ -2039,6 +1717,7 @@ const scanInventory = register(`step`, (steps) => {
     let inventory = Player.getInventory();
     let items = inventory.getItems();
     lowLifeItems = [];
+    if (!pitExtrasSettings.getSetting("LifeSaver", "Enabled")) return;
     //Check if the Player is wearing bad armor
     let player = World.getPlayerByName(Player.getName());
     let playerHelm = player.getItemInSlot(4).getName();
@@ -2099,108 +1778,8 @@ const scanInventory = register(`step`, (steps) => {
 
 }).setDelay(1);
 
-/*const lifeSaver = register(`step`, (steps) => {
-  if (dropped){
-    if (lowlifemystics){
-      if (lifesavr disabled){
-
-      } else if (funkyfeather){
-
-      } else if (){
-
-      }
-    }
-  }
-});
-
-//Auto Spawn if You Drop with Low Life Mystics
-const lifeSaver = register(`step`, (steps) => {
-    //if ((ChatLib.removeFormatting(Scoreboard.getTitle()) !== "THE HYPIXEL PIT")) return;
-    //get the players streak
-    let streak = 0;
-    Scoreboard.getLines(false).forEach((item) => {
-        if (item.toString().includes("Streak")) {
-            streak = Number.parseInt(item.toString().split(" ")[1].replace(/(§[a-z0-9])/g, ""))
-        }
-    });
-    //Check if the player has a feather in their hotbar
-    let player = World.getPlayerByName(Player.getName());
-    let hotbarFeather = false;
-    if (Player.getInventory().indexOf(288) >= 0 && Player.getInventory().indexOf(288) <= 8) {
-        hotbarFeather = true;
-    }
-    let mega = false;
-    mega = Player.getName().replace(/§[abcdef0-9klm](HERMIT|HIGH|UBER400|OVERDRIVE|BEAST|MOON) /, "@MEGA@").includes("@MEGA@");
-    if (mega && hotbarFeather) {
-        ChatLib.clearChat(666)
-        ChatLib.chat(new Message(`You hit §cMega §fremove the §3Funky Feather §ffrom your hotbar`).setChatLineId(666))
-    }
-    let timeNow = Date.now();
-    if (config === null) {
-        readConfig();
-    }
-    if ((lowLifeItems.length) > 0 && (Player.getY() < (spawnY - 7))) {
-        if (spawnTime === null || ((timeNow - spawnTime) > MILLISEC_TO_SEC)) {
-            if (newLife === true) {
-                if (wearingBadArmor) {
-                    ChatLib.chat("§fYou dropped with §cbad armor§f!")
-                } else {
-                    ChatLib.chat("§fYou dropped with §clow life §fmystics!")
-                    if (hotbarFeather == true) {
-                        newLife = false
-                        ChatLib.chat("§fYou were §cnot §fRespawned because you have a §3Funky Feather §fin your hotbar")
-                        return;
-                    }
-                }
-                if (streak >= config.streakCutoff) {
-                    newLife = false
-                    ChatLib.chat("§fYou were §cnot §fRespawned because you are streaking")
-                    return;
-                }
-                if (pitExtrasSettings.getSetting("LifeSaver", "Enabled") != true) {
-                    newLife = false
-                    ChatLib.chat("§fYou were §cnot §fRespawned because §6Life Saver is §cdisabled")
-                    return;
-                } else {
-                    ChatLib.command("spawn")
-                    spawnTime = timeNow;
-                    newLife = false
-                    ChatLib.chat("§fYou were §arespawned")
-                }
-            }
-        } else {
-            if ( warnings.badArmor === false) {
-                if ((timeNow - spawnTime) < 300) return;
-                if (wearingBadArmor) {
-                    ChatLib.chat("§fYou dropped with §cbad armor§f!")
-                } else {
-                    ChatLib.chat("§fYou dropped with §clow life §fmystics!")
-                }
-                 warnings.badArmor = true;
-                ChatLib.chat("§fYou were §cnot §fRespawned because §e/spawn §fis on §ccooldown §fdo §e/play pit")
-            }
-        }
-    } else {
-        if (Player.getY() > (spawnY - 7)) {
-            newLife = true;
-             warnings.badArmor = false;
-        }
-    }
-}).setFps(20);*/
-
 const guiHandler = register("command", () => {
         myGui.open();
-        /*else {
-      try {
-        let item = Player.getHeldItem();
-        FileLib.write('./config/ChatTriggers/modules/PitExtras/iteminfo.json', item.getLore().join().replace("§","$"));
-        let newItem = createStack(item.getID(), item.getName(), item.getLore(), item.getDamage(), false);
-        newItem.draw(0, 0, 100);
-        //FileLib.write('./config/ChatTriggers/modules/PitExtras/iteminfo.json', JSON.stringify(Player.getHeldItem(), null, 2));
-      } catch (e) {
-        ChatLib.chat(`GUI Handler Error: ${e}`);
-      }
-    }*/
 }).setName("pitextrasgui");
 
 const fetchHypixelStats = (key, uuid) => {
@@ -2224,7 +1803,6 @@ const fetchHypixelStats = (key, uuid) => {
             playerStats.currentGold = playerInfo.player.stats.Pit.profile.cash.toFixed(2);
             playerStats.goldGrinded = playerInfo.player.stats.Pit.profile[`cash_during_prestige_${playerStats.pres}`].toFixed(2);
         } catch (e) {
-            ChatLib.chat("request fail");
             ChatLib.chat(`Fetch Hypixel Stats Error: ${e}`);
             return ({
                 success: false
@@ -2235,7 +1813,7 @@ const fetchHypixelStats = (key, uuid) => {
 
 register("actionBar", event => {
     let actionBarText = ChatLib.getChatMessage(event);
-    if (actionBarText.includes("Telebow") && actionBarText.includes("Cooldown")) {
+    if (actionBarText.includes("Telebow") && actionBarText.includes("cooldown")) {
         timers.tele.cooldownLength = parseInt(actionBarText.split(": ")[1])
         timers.tele.lastUsed = Date.now();
     }
