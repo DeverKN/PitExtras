@@ -1813,7 +1813,7 @@ const fetchHypixelStats = (key, uuid) => {
 
 register("actionBar", event => {
     let actionBarText = ChatLib.getChatMessage(event);
-    if (actionBarText.includes("Telebow") && actionBarText.includes("Cooldown")) {
+    if (actionBarText.includes("Telebow") && actionBarText.includes("cooldown")) {
         timers.tele.cooldownLength = parseInt(actionBarText.split(": ")[1])
         timers.tele.lastUsed = Date.now();
     }
