@@ -54,7 +54,7 @@ var timers = {
                       itemID:261,
                       enchantRequired:true,
                       defaultName:"§cTier III Bow",
-                      defaultLore: ["§dRARE! §9Telebow "],
+                      defaultLore: ["§dRARE! §9Telebow"],
                       defaultDamage:0,
                       cooldownLore: '§6Cooldown Remaining: '
                     }}
