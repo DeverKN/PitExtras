@@ -265,6 +265,7 @@ const pitExtrasSettings = new SettingsObject("PitExtras", [{
             new Setting.Toggle("5K Bounty Warning", true),
             new Setting.Toggle("Force Shift", false),
             new Setting.Toggle("Show Streak Info", true),
+            new Setting.Toggle("Show Streak Recap", true),
             new Setting.Button("Move GUI", "Move", () => {
                 ChatLib.command("pitextrasgui", true);
             }),
@@ -275,6 +276,7 @@ const pitExtrasSettings = new SettingsObject("PitExtras", [{
             new Setting.Toggle("Show Aura Timer", true),
             new Setting.Toggle("Show Steak Timer", true),
             new Setting.Toggle("Show Telebow Timer", true),
+            new Setting.Toggle("End Streak on /spawn", true),
         ]
     },
     {
@@ -482,7 +484,7 @@ function startStreak(kill, assist, xp, gold){
 
 function endStreak() {
     streakInfo.endTime = Date.now();
-    if ((streakInfo.startTime == null) || (pitExtrasSettings.getSetting("GUI", "Show Streak Info") == false)) return;
+    if ((streakInfo.startTime == null) || (pitExtrasSettings.getSetting("GUI", "Show Streak Recap") == false)) return;
     let time = ((streakInfo.endTime - streakInfo.startTime) / MILLISEC_TO_SEC).toFixed(2)
     if (time > 60) {
         if (pitExtrasSettings.getSetting("GUI", "Show Streak Info")) {
@@ -518,6 +520,7 @@ function endStreak() {
             }
         }
     }
+    streakInfo.startTime = null;
     return;
 }
 
@@ -525,11 +528,13 @@ function endStreak() {
 //Detect /spawn
 register("messageSent", (msg, event) => {
     if (msg == "/spawn") {
-      ChatLib.chat(`${PIT_EXTRAS_MESSAGE_TAG} Streak reset because you spawned`)
-        //Detect major
-        //if (!majorEvent) {
-            endStreak()
-        //}
+      if (pitExtrasSettings.getSetting("GUI", "End Streak on /spawn")} {
+        ChatLib.chat(`${PIT_EXTRAS_MESSAGE_TAG} Streak reset because you spawned`)
+          //Detect major
+          //if (!majorEvent) {
+              endStreak()
+          //}
+      }
     }
 });
 
@@ -1388,6 +1393,7 @@ function renderStringArray(stringArray, x, y){
 }
 
 function renderStreakHUD(x, y){
+  if (pitExtrasSettings.getSetting("GUI", "Show Streak Info") == false) return;
   if ((streakInfo.startTime != null) || ((myGui.isOpen() == true))) {
       let timeNow = Date.now();
       let time = (streakInfo.endTime == null ? ((timeNow - streakInfo.startTime) / MILLISEC_TO_SEC).toFixed(2) : ((streakInfo.endTime - streakInfo.startTime) / MILLISEC_TO_SEC).toFixed(2))
@@ -1803,7 +1809,7 @@ const fetchHypixelStats = (key, uuid) => {
             playerStats.currentGold = playerInfo.player.stats.Pit.profile.cash.toFixed(2);
             playerStats.goldGrinded = playerInfo.player.stats.Pit.profile[`cash_during_prestige_${playerStats.pres}`].toFixed(2);
         } catch (e) {
-            ChatLib.chat(`Fetch Hypixel Stats Error: ${e}`);
+            //ChatLib.chat(`Fetch Hypixel Stats Error: ${e}`);
             return ({
                 success: false
             })
@@ -1852,7 +1858,7 @@ function cooldownMessage(timerName){
   let currentTimer = timers[timerName];
   try {
     if ((currentTimer.cooldownLength - ((Date.now() - currentTimer.lastUsed) / MILLISEC_TO_SEC)).toFixed(2) < 0) return;
-    ChatLib.clearChat(Object.keys(timers).indexOf(timerName));
+    //ChatLib.clearChat(Object.keys(timers).indexOf(timerName));
     ChatLib.chat(new Message (`${PIT_EXTRAS_MESSAGE_TAG} ${currentTimer.cooldownMessage}${(currentTimer.cooldownLength - ((Date.now() - currentTimer.lastUsed) / MILLISEC_TO_SEC)).toFixed(2)} seconds`).setChatLineId(Object.keys(timers).indexOf(timerName)));
   } catch (e) {
     ChatLib.chat(`Cooldown Message Error: ${e}`);
